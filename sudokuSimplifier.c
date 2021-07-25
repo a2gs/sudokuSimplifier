@@ -42,9 +42,9 @@ int printCube(int cube[HEIGHT][LINES][COLUMNS])
 	for(line = 0; line < LINES; line++){
 		for(col = 0; col < COLUMNS; col++){
 			printf("%c: ", PRINT_EMPTY(cube[0][line][col]));
-			for(height = 1; height < HEIGHT && cube[height][line][col] != EMPTY; height++){
+			for(height = 1; height < HEIGHT && cube[height][line][col] != EMPTY; height++)
 				printf("%c ", PRINT_EMPTY(cube[height][line][col]));
-			}
+
 			printf("\n");
 		}
 	}
@@ -102,7 +102,7 @@ int howMuchNumbersInASquare(int cube[LINES][COLUMNS], unsigned int square)
 	unsigned int i = 0, tot = 0;
 	int *pelem[DEFAULT_SUDOKU_SQUARE] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 
-	switch(square){ // SHAME!! SHAME!! SHAME!! ... but works, and fast ...
+	switch(square){ // SHAME!! SHAME!! SHAME!! ... but it works, and fast ...
 		case 1:
 			pelem[0] = &cube[0][0]; pelem[1] = &cube[0][1]; pelem[2] = &cube[0][2];
 			pelem[3] = &cube[1][0]; pelem[4] = &cube[1][1]; pelem[5] = &cube[1][2];
@@ -158,18 +158,35 @@ int howMuchNumbersInASquare(int cube[LINES][COLUMNS], unsigned int square)
 	return(tot);
 }
 
-int cleanFixedNumbers(int cube[][LINES][COLUMNS])
+int cleanFixedNumbers(int cube[HEIGHT][LINES][COLUMNS])
 {
 	unsigned height = 0, line = 0, col = 0;
 
 	for(line = 0; line < LINES; line++){
 		for(col = 0; col < COLUMNS; col++){
 			if(cube[0][line][col] != EMPTY){
-				for(height = 1; height < HEIGHT; height++){
+				for(height = 1; height < HEIGHT; height++)
 					cube[height][line][col] = EMPTY;
-				}
 			}
 		}
+	}
+
+	return(0);
+}
+
+int remove_n(int n, int vertical[HEIGHT][LINES][COLUMNS], unsigned int line, unsigned int col)
+{
+	if(vertical[HEIGHT-1][line][col] == n)
+		vertical[HEIGHT-1][line][col] = EMPTY;
+	else{
+		unsigned int i = 0;
+		int flag = 0;
+
+		for(flag = 0, i = 0; i < HEIGHT && vertical[i][line][col] != EMPTY; i++){
+			if(flag == 0 && vertical[i][line][col] == n) flag = 1;
+			if(flag == 1) vertical[i][line][col] = vertical[i+1][line][col];
+		}
+		vertical[i-1][line][col] = EMPTY;
 	}
 
 	return(0);
@@ -191,32 +208,14 @@ int lineColumnCleanUp(int cube[][LINES][COLUMNS])
 
 				/* a function here: specificNumberLineColumnCleanUp(line, col, cube[0][line][col]) */
 				{
-					unsigned auxheight = 0, auxline = 0, auxcol = 0;
+					unsigned auxline = 0, auxcol = 0;
 					int fixedNumber = EMPTY;
 
 					fixedNumber = cube[0][line][col];
 
-					auxline = line;
-					for(auxcol = 0; auxcol < COLUMNS; auxcol++){
-						for(auxheight = 1; auxheight < HEIGHT && cube[auxheight][auxline][auxcol] != EMPTY; auxheight++){
-							if(cube[auxheight][auxline][auxcol] == fixedNumber){
-								/* down size here */
-							}
-						}
-					}
-
-					auxcol = col;
-					for(auxline = 0; auxline < LINES; auxline++){
-						for(auxheight = 1; auxheight < HEIGHT && cube[auxheight][auxline][auxcol] != EMPTY; auxheight++){
-							if(cube[auxheight][auxline][auxcol] == fixedNumber){
-								/* down size here */
-							}
-						}
-					}
-
+					for(auxcol  = 0, auxline = line; auxcol < COLUMNS; auxcol++) remove_n(fixedNumber, cube, auxline, auxcol);
+					for(auxline = 0, auxcol  = col; auxline < LINES;  auxline++) remove_n(fixedNumber, cube, auxline, auxcol);
 				}
-
-
 
 			}
 		}
@@ -238,8 +237,14 @@ int statisticalCleanUp(int cube[][LINES][COLUMNS])
 	return(0);
 }
 
+int triangularizationCleanUp(int cube[][LINES][COLUMNS])
+{
+	return(0);
+}
+
 int main(int argc, char *argv[])
 {
+	int flag = 0;
 	int cube[HEIGHT][LINES][COLUMNS] = {
 		{{5, 3, EMPTY, EMPTY, 7, EMPTY, EMPTY, EMPTY, EMPTY}, {6, EMPTY, EMPTY, 1, 9, 5, EMPTY, EMPTY, EMPTY}, {EMPTY, 9, 8, EMPTY, EMPTY, EMPTY, EMPTY, 6, EMPTY}, {8, EMPTY, EMPTY, EMPTY, 6, EMPTY, EMPTY, EMPTY, 3}, {4, EMPTY, EMPTY, 8, EMPTY, 3, EMPTY, EMPTY, 1}, {7, EMPTY, EMPTY, EMPTY, 2, EMPTY, EMPTY, EMPTY, 6}, {EMPTY, 6, EMPTY, EMPTY, EMPTY, EMPTY, 2, 8, EMPTY}, {EMPTY, EMPTY, EMPTY, 4, 1, 9, EMPTY, EMPTY, 5}, {EMPTY, EMPTY, EMPTY, EMPTY, 8, EMPTY, EMPTY, 7, 9}},
 		{{0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0}},
@@ -258,9 +263,12 @@ int main(int argc, char *argv[])
 
 	cleanFixedNumbers(cube);
 
-	lineColumnCleanUp(cube);
-
-	statisticalCleanUp(cube);
+	do{
+		flag = 0;
+		lineColumnCleanUp(cube);
+		flag = statisticalCleanUp(cube);
+		flag = triangularizationCleanUp(cube);
+	}while(flag == 1);
 
 	printCube(cube);
 
